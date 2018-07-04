@@ -1,5 +1,5 @@
 ﻿using JetBrains.Annotations;
-using Lykke.SettingsReader.Attributes;
+using Lykke.Service.GdaxAdapter.Services.Settings;
 
 namespace Lykke.Service.GdaxAdapter.Settings
 {
@@ -7,5 +7,8 @@ namespace Lykke.Service.GdaxAdapter.Settings
     public class GdaxAdapterSettings
     {
         public DbSettings Db { get; set; }
+
+        public OrderBookBasedFeeds Feeds { get; set; }
+
     }
 }
