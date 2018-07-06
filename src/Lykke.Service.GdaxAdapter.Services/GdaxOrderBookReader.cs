@@ -61,12 +61,30 @@ namespace Lykke.Service.GdaxAdapter.Services
 
                     foreach (var ch in update.Changes.Where(x => x[0].Value<string>() == "buy"))
                     {
-                        ob.UpdateBid(ch[1].Value<decimal>(), ch[2].Value<decimal>());
+                        try
+                        {
+                            ob.UpdateBid(ch[1].Value<decimal>(), ch[2].Value<decimal>());
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Warning($"Error updating order book json: {ch}", ex);
+
+                            throw;
+                        }
                     }
 
                     foreach (var ch in update.Changes.Where(x => x[0].Value<string>() == "sell"))
                     {
-                        ob.UpdateAsk(ch[1].Value<decimal>(), ch[2].Value<decimal>());
+                        try
+                        {
+                            ob.UpdateAsk(ch[1].Value<decimal>(), ch[2].Value<decimal>());
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Warning($"Error updating order book json: {ch}", ex);
+
+                            throw;
+                        }
                     }
 
                     return ob;

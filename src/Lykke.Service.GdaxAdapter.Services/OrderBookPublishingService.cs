@@ -62,6 +62,8 @@ namespace Lykke.Service.GdaxAdapter.Services
                         .Where(x => x != null)
                         .OnlyWithPositiveSpread()
                         .DetectAndFilterAnomalies(_log, new string[0])
+                        .ReportErrors(nameof(OrderBookPublishingService), _log)
+                        .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
                         .Share();
 
                 var obPublisher =
