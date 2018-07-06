@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -17,42 +16,25 @@ namespace Lykke.Service.GdaxAdapter.Services
     {
         private struct MidPrice
         {
-            public readonly decimal Min;
-            public readonly decimal Max;
-            public decimal Mid => (Min + Max) / 2;
-            public readonly int ItemsCount;
+            public readonly decimal BestAsk;
+            public readonly decimal BestBid;
+            public decimal Mid => (BestAsk + BestBid) / 2;
             public string Asset;
 
-            public MidPrice(decimal min, decimal max, int itemsCount, string asset) : this()
+            public MidPrice(decimal bid, decimal ask, string asset)
             {
-                Min = min;
-                Max = max;
-                ItemsCount = itemsCount;
+                BestAsk = ask;
+                BestBid = bid;
                 Asset = asset;
             }
 
-            public static MidPrice? Ask(OrderBook ob)
+            public static MidPrice? Get(OrderBook ob)
             {
-                if (ob.Asks.Any())
+                if (ob.Asks.Any() && ob.Bids.Any())
                 {
                     return new MidPrice(
-                        ob.Asks.Keys.First(),
-                        ob.Asks.Keys.Last(),
-                        ob.Asks.Count,
-                        ob.Asset);
-                }
-
-                return null;
-            }
-
-            public static MidPrice? Bid(OrderBook ob)
-            {
-                if (ob.Bids.Any())
-                {
-                    return new MidPrice(
-                        ob.Bids.Keys.First(),
-                        ob.Bids.Keys.Last(),
-                        ob.Bids.Count,
+                        ob.BestAskPrice,
+                        ob.BestBidPrice,
                         ob.Asset);
                 }
 
@@ -61,7 +43,7 @@ namespace Lykke.Service.GdaxAdapter.Services
 
             public override string ToString()
             {
-                return $"{Asset}: {Mid} ({Min} .. {Max})";
+                return $"{Asset}: {Mid} ({BestBid} .. {BestAsk})";
             }
         }
 
@@ -69,7 +51,7 @@ namespace Lykke.Service.GdaxAdapter.Services
             this IObservable<OrderBook> source,
             ILog log)
         {
-            string DetectAnomaly(MidPrice? previousMidPrice, MidPrice? midPrice, string side)
+            string DetectAnomaly(MidPrice? previousMidPrice, MidPrice? midPrice)
             {
                 if (previousMidPrice == null) return null;
                 if (midPrice == null) return null;
@@ -78,7 +60,7 @@ namespace Lykke.Service.GdaxAdapter.Services
                     || previousMidPrice.Value.Mid / midPrice.Value.Mid > 10M)
                 {
                     return $"Found anomaly, orderbook skipped. " +
-                           $"Current {side} midPrice is " +
+                           $"Current midPrice is " +
                            $"{previousMidPrice.Value}, the new one is {midPrice.Value}";
                 }
                 else
@@ -89,29 +71,20 @@ namespace Lykke.Service.GdaxAdapter.Services
 
             return Observable.Create<OrderBook>(async (obs, ct) =>
             {
-                MidPrice? prevAsk = null;
-                MidPrice? prevBid = null;
+                MidPrice? prevMid = null;
 
                 await source.ForEachAsync(orderBook =>
                 {
-                    var newAskMidPrice = MidPrice.Ask(orderBook);
-                    var askAnomaly = DetectAnomaly(prevAsk, newAskMidPrice, "ask");
+                    var newMidPrice = MidPrice.Get(orderBook);
+                    var anomaly = DetectAnomaly(prevMid, newMidPrice);
 
-                    var newBidMidPrice = MidPrice.Bid(orderBook);
-                    var bidAnomaly = DetectAnomaly(prevBid, newBidMidPrice, "bid");
-
-                    if (askAnomaly != null)
+                    if (anomaly != null)
                     {
-                        log.Warning(askAnomaly);
-                    }
-                    else if (bidAnomaly != null)
-                    {
-                        log.Warning(bidAnomaly);
+                        log.Warning(anomaly);
                     }
                     else
                     {
-                        prevAsk = newAskMidPrice ?? prevAsk;
-                        prevBid = newBidMidPrice ?? prevBid;
+                        prevMid = newMidPrice ?? prevMid;
                         obs.OnNext(orderBook);
                     }
                 }, ct);

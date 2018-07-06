@@ -72,6 +72,8 @@ namespace Lykke.Service.GdaxAdapter.Services
                             _settings.OrderBooks.ConnectionString,
                             _settings.OrderBooks.Exchanger,
                             _logFactory)
+                        .ReportErrors(nameof(OrderBookPublishingService), _log)
+                        .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
                         .Share();
 
                 var tpPublisher =
@@ -83,6 +85,8 @@ namespace Lykke.Service.GdaxAdapter.Services
                             _settings.TickPrices.ConnectionString,
                             _settings.TickPrices.Exchanger,
                             _logFactory)
+                        .ReportErrors(nameof(OrderBookPublishingService), _log)
+                        .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
                         .Share();
 
                 var publishTickPrices = _settings.TickPrices.Enabled;
