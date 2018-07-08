@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using Common.Log;
 using Lykke.Common.ExchangeAdapter.Contracts;
-using Lykke.Common.ExchangeAdapter.Tools.ObservableWebSocket;
 using Lykke.Common.Log;
 using Newtonsoft.Json.Linq;
 
@@ -21,32 +20,25 @@ namespace Lykke.Service.GdaxAdapter.Services
         private readonly ConcurrentDictionary<string, OrderBook> _orderBooks
             = new ConcurrentDictionary<string, OrderBook>();
 
-        private ILog _log;
+        private readonly ILog _log;
         private const string Source = "gdax";
 
-        public OrderBook DeserializeMessage(ISocketEvent ev)
+        public OrderBook DeserializeMessage(byte[] content)
         {
-            if (ev is IMessageReceived<byte[]> msg)
+            var json = JToken.Parse(Encoding.UTF8.GetString(content));
+
+            if (json is JObject obj)
             {
-                var json = JToken.Parse(Encoding.UTF8.GetString(msg.Content));
-
-                if (json is JObject obj)
+                switch (obj["type"].Value<string>())
                 {
-                    switch (obj["type"].Value<string>())
-                    {
-                        case "snapshot":
-                            return ProcessOrderBook(json.ToObject<Snapshot>());
+                    case "snapshot":
+                        return ProcessOrderBook(json.ToObject<Snapshot>());
 
-                        case "l2update":
-                            return ProcessUpdate(json.ToObject<L2Update>());
-                    }
+                    case "l2update":
+                        return ProcessUpdate(json.ToObject<L2Update>());
+                }
 
-                    return null;
-                }
-                else
-                {
-                    return null;
-                }
+                return null;
             }
 
             return null;

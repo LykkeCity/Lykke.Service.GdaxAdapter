@@ -44,73 +44,76 @@ namespace Lykke.Service.GdaxAdapter.Services
         public IObservable<Unit> CreateWorker()
         {
             var wsClient =
-                new ObservableWebSocket("wss://ws-feed.gdax.com", Info)
-                    .ReportErrors(nameof(OrderBookPublishingService), _log)
-                    .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
+                Observable.Defer(() =>
+                    {
+                        var reader = new GdaxOrderBookReader(_logFactory);
+
+                        return new ObservableWebSocket("wss://ws-feed.gdax.com", Info)
+                            .ApplyBytesReader(reader.DeserializeMessage)
+                            .ReportErrors(nameof(OrderBookPublishingService), _log)
+                            .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5));
+
+                    })
                     .Share();
 
             var statWindow = TimeSpan.FromMinutes(1);
 
-            return Observable.Defer(() =>
-            {
-                var reader = new GdaxOrderBookReader(_logFactory);
-                var orderBooks =
-                    Observable.Merge(
-                            wsClient.Select(reader.DeserializeMessage),
-                            SubscribeOnConnect(wsClient).Select(_ => (OrderBook) null)
-                        )
-                        .Where(x => x != null)
-                        .OnlyWithPositiveSpread()
-                        .DetectAndFilterAnomalies(_log, new string[0])
-                        .ReportErrors(nameof(OrderBookPublishingService), _log)
-                        .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
-                        .Share();
+            var orderBooks =
+                Observable.Merge(
+                        wsClient.TakeOnlyContent<OrderBook>(),
+                        SubscribeOnConnect(wsClient).Select(_ => (OrderBook) null)
+                    )
+                    .Where(x => x != null)
+                    .OnlyWithPositiveSpread()
+                    .DetectAndFilterAnomalies(_log, new string[0])
+                    .ReportErrors(nameof(OrderBookPublishingService), _log)
+                    .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
+                    .Share();
 
-                var obPublisher =
-                    orderBooks
-                        .ThrottleEachInstrument(x => x.Asset, _settings.MaxEventPerSecondByInstrument)
-                        .Select(x => x.Truncate(_settings.OrderBookDepth))
-                        .PublishToRmq(
-                            _settings.OrderBooks.ConnectionString,
-                            _settings.OrderBooks.Exchanger,
-                            _logFactory)
-                        .ReportErrors(nameof(OrderBookPublishingService), _log)
-                        .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
-                        .Share();
+            var obPublisher =
+                orderBooks
+                    .ThrottleEachInstrument(x => x.Asset, _settings.MaxEventPerSecondByInstrument)
+                    .Select(x => x.Truncate(_settings.OrderBookDepth))
+                    .PublishToRmq(
+                        _settings.OrderBooks.ConnectionString,
+                        _settings.OrderBooks.Exchanger,
+                        _logFactory)
+                    .ReportErrors(nameof(OrderBookPublishingService), _log)
+                    .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
+                    .Share();
 
-                var tpPublisher =
-                    orderBooks
-                        .Select(TickPrice.FromOrderBook)
-                        .DistinctEveryInstrument(x => x.Asset)
-                        .ThrottleEachInstrument(x => x.Asset, _settings.MaxEventPerSecondByInstrument)
-                        .PublishToRmq(
-                            _settings.TickPrices.ConnectionString,
-                            _settings.TickPrices.Exchanger,
-                            _logFactory)
-                        .ReportErrors(nameof(OrderBookPublishingService), _log)
-                        .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
-                        .Share();
+            var tpPublisher =
+                orderBooks
+                    .Select(TickPrice.FromOrderBook)
+                    .DistinctEveryInstrument(x => x.Asset)
+                    .ThrottleEachInstrument(x => x.Asset, _settings.MaxEventPerSecondByInstrument)
+                    .PublishToRmq(
+                        _settings.TickPrices.ConnectionString,
+                        _settings.TickPrices.Exchanger,
+                        _logFactory)
+                    .ReportErrors(nameof(OrderBookPublishingService), _log)
+                    .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
+                    .Share();
 
-                var publishTickPrices = _settings.TickPrices.Enabled;
-                var publishOrderBooks = _settings.OrderBooks.Enabled;
+            var publishTickPrices = _settings.TickPrices.Enabled;
+            var publishOrderBooks = _settings.OrderBooks.Enabled;
 
-                return Observable.Merge(
-                    tpPublisher.NeverIfNotEnabled(publishTickPrices),
-                    obPublisher.NeverIfNotEnabled(publishOrderBooks),
+            return Observable.Merge(
+                tpPublisher.NeverIfNotEnabled(publishTickPrices),
+                obPublisher.NeverIfNotEnabled(publishOrderBooks),
 
-                    orderBooks.ReportStatistics(
-                            statWindow,
-                            _log,
-                            "OrderBooks received from WebSocket in the last {0}: {1}")
-                        .NeverIfNotEnabled(publishTickPrices || publishOrderBooks),
+                orderBooks.ReportStatistics(
+                        statWindow,
+                        _log,
+                        "OrderBooks received from WebSocket in the last {0}: {1}")
+                    .NeverIfNotEnabled(publishTickPrices || publishOrderBooks),
 
-                    tpPublisher.ReportStatistics(statWindow, _log, "TickPrices published in the last {0}: {1}")
-                        .NeverIfNotEnabled(publishTickPrices),
+                tpPublisher.ReportStatistics(statWindow, _log, "TickPrices published in the last {0}: {1}")
+                    .NeverIfNotEnabled(publishTickPrices),
 
-                    obPublisher.ReportStatistics(statWindow, _log, "OrderBooks published in the last {0}: {1}")
-                        .NeverIfNotEnabled(publishOrderBooks)
-                );
-            });
+                obPublisher.ReportStatistics(statWindow, _log, "OrderBooks published in the last {0}: {1}")
+                    .NeverIfNotEnabled(publishOrderBooks)
+            );
         }
 
         private static IObservable<Unit> SubscribeOnConnect(IObservable<ISocketEvent> wsClient)
