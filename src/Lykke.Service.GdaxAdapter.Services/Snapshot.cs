@@ -12,10 +12,12 @@ namespace Lykke.Service.GdaxAdapter.Services
         [JsonProperty("time")]
         public DateTime Timestamp { get; set; }
 
+        // string until https://github.com/JamesNK/Newtonsoft.Json/issues/1711 released (fixed 21 May 2018)
         [JsonProperty("bids")]
-        public IReadOnlyCollection<decimal[]> Bids { get; set; }
+        public IReadOnlyCollection<string[]> Bids { get; set; }
 
+        // string until https://github.com/JamesNK/Newtonsoft.Json/issues/1711 released (fixed 21 May 2018)
         [JsonProperty("asks")]
-        public IReadOnlyCollection<decimal[]> Asks { get; set; }
+        public IReadOnlyCollection<string[]> Asks { get; set; }
     }
 }

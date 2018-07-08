@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Common.Log;
@@ -97,9 +98,17 @@ namespace Lykke.Service.GdaxAdapter.Services
                 Source,
                 ToLykkeAsset(snapshot.GdaxAsset),
                 snapshot.Timestamp,
-                bids: snapshot.Bids.Select(x => new OrderBookItem(x[0], x[1])),
-                asks: snapshot.Asks.Select(x => new OrderBookItem(x[0], x[1]))
+                // string until https://github.com/JamesNK/Newtonsoft.Json/issues/1711 released (fixed 21 May 2018)
+                bids: snapshot.Bids.Select(x => new OrderBookItem(ParseDecimal(x[0]), ParseDecimal(x[1]))),
+                // string until https://github.com/JamesNK/Newtonsoft.Json/issues/1711 released (fixed 21 May 2018)
+                asks: snapshot.Asks.Select(x => new OrderBookItem(ParseDecimal(x[0]), ParseDecimal(x[1])))
             );
+        }
+
+        // string until https://github.com/JamesNK/Newtonsoft.Json/issues/1711 released (fixed 21 May 2018)
+        public static decimal ParseDecimal(string str)
+        {
+            return decimal.Parse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture);
         }
 
         private static string ToLykkeAsset(string gdaxAsset)
