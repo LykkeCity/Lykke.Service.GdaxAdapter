@@ -8,5 +8,10 @@ namespace Lykke.Service.GdaxAdapter.Services.WebSocketClient
         {
             Asset = asset;
         }
+
+        public string ToLykkeAsset()
+        {
+            return Asset.Replace("-", "");
+        }
     }
 }

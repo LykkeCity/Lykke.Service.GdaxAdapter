@@ -6,6 +6,7 @@ using System.Text;
 using Common.Log;
 using Lykke.Common.ExchangeAdapter.Contracts;
 using Lykke.Common.Log;
+using Lykke.Service.GdaxAdapter.Services.WebSocketClient;
 using Newtonsoft.Json.Linq;
 
 namespace Lykke.Service.GdaxAdapter.Services
@@ -84,11 +85,11 @@ namespace Lykke.Service.GdaxAdapter.Services
                 });
         }
 
-        private static OrderBook ConvertSnapshot(Snapshot snapshot)
+        private OrderBook ConvertSnapshot(Snapshot snapshot)
         {
             return new OrderBook(
                 Source,
-                ToLykkeAsset(snapshot.GdaxAsset),
+                new GdaxAsset(snapshot.GdaxAsset).ToLykkeAsset(),
                 snapshot.Timestamp,
                 // string until https://github.com/JamesNK/Newtonsoft.Json/issues/1711 released (fixed 21 May 2018)
                 bids: snapshot.Bids.Select(x => new OrderBookItem(ParseDecimal(x[0]), ParseDecimal(x[1]))),
@@ -101,11 +102,6 @@ namespace Lykke.Service.GdaxAdapter.Services
         public static decimal ParseDecimal(string str)
         {
             return decimal.Parse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture);
-        }
-
-        private static string ToLykkeAsset(string gdaxAsset)
-        {
-            return gdaxAsset.Replace("-", "");
         }
 
         private OrderBook ProcessOrderBook(Snapshot snapshot)

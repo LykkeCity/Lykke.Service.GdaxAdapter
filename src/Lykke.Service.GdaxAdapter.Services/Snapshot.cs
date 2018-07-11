@@ -10,7 +10,7 @@ namespace Lykke.Service.GdaxAdapter.Services
         public string GdaxAsset { get; set; }
 
         [JsonProperty("time")]
-        public DateTime Timestamp { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
         // string until https://github.com/JamesNK/Newtonsoft.Json/issues/1711 released (fixed 21 May 2018)
         [JsonProperty("bids")]

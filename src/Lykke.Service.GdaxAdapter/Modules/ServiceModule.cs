@@ -24,6 +24,7 @@ namespace Lykke.Service.GdaxAdapter.Modules
             builder
                 .RegisterType<OrderBookPublishingService>()
                 .As<IHostedService>()
+                .AsSelf()
                 .SingleInstance();
 
             // Do not register entire settings in container, pass necessary settings to services which requires them

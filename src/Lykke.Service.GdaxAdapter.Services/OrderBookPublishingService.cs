@@ -33,16 +33,20 @@ namespace Lykke.Service.GdaxAdapter.Services
             _log.Info("Started");
         }
 
+        public OrderBooksSession OrderBooksSession { get; private set; }
         private IDisposable _worker;
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _worker = CreateWorker().Subscribe();
-            return Task.CompletedTask;
+            OrderBooksSession = await CreateWorker();
+            _worker = OrderBooksSession.Worker.Subscribe();
         }
 
-        public IObservable<Unit> CreateWorker()
+        public async Task<OrderBooksSession> CreateWorker()
         {
+            var products = await new GdaxClient().GetProducts();
+            var assets = products.Select(x => new GdaxAsset(x.Id)).ToArray();
+
             var wsClient =
                 Observable.Defer(() =>
                     {
@@ -61,7 +65,7 @@ namespace Lykke.Service.GdaxAdapter.Services
             var orderBooks =
                 Observable.Merge(
                         wsClient.TakeOnlyContent<OrderBook>(),
-                        SubscribeOnConnect(wsClient).Select(_ => (OrderBook) null)
+                        SubscribeOnConnect(wsClient, assets).Select(_ => (OrderBook) null)
                     )
                     .Where(x => x != null)
                     .OnlyWithPositiveSpread()
@@ -82,23 +86,26 @@ namespace Lykke.Service.GdaxAdapter.Services
                     .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
                     .Share();
 
-            var tpPublisher =
-                orderBooks
-                    .Select(TickPrice.FromOrderBook)
-                    .DistinctEveryInstrument(x => x.Asset)
-                    .ThrottleEachInstrument(x => x.Asset, _settings.MaxEventPerSecondByInstrument)
-                    .PublishToRmq(
-                        _settings.TickPrices.ConnectionString,
-                        _settings.TickPrices.Exchanger,
-                        _logFactory)
-                    .ReportErrors(nameof(OrderBookPublishingService), _log)
-                    .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
-                    .Share();
+            var tickPrices = orderBooks
+                .Select(TickPrice.FromOrderBook)
+                .DistinctEveryInstrument(x => x.Asset)
+                .ReportErrors(nameof(OrderBookPublishingService), _log)
+                .RetryWithBackoff(TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(5))
+                .Share();
+
+            var tpPublisher = tickPrices
+                .ThrottleEachInstrument(x => x.Asset, _settings.MaxEventPerSecondByInstrument)
+                .PublishToRmq(
+                    _settings.TickPrices.ConnectionString,
+                    _settings.TickPrices.Exchanger,
+                    _logFactory)
+                .ReportErrors(nameof(OrderBookPublishingService), _log)
+                .Share();
 
             var publishTickPrices = _settings.TickPrices.Enabled;
             var publishOrderBooks = _settings.OrderBooks.Enabled;
 
-            return Observable.Merge(
+            var publisher = Observable.Merge(
                 tpPublisher.NeverIfNotEnabled(publishTickPrices),
                 obPublisher.NeverIfNotEnabled(publishOrderBooks),
 
@@ -114,16 +121,20 @@ namespace Lykke.Service.GdaxAdapter.Services
                 obPublisher.ReportStatistics(statWindow, _log, "OrderBooks published in the last {0}: {1}")
                     .NeverIfNotEnabled(publishOrderBooks)
             );
+
+            return new OrderBooksSession(
+                assets,
+                tickPrices, orderBooks, publisher);
         }
 
-        private static IObservable<Unit> SubscribeOnConnect(IObservable<ISocketEvent> wsClient)
+        private static IObservable<Unit> SubscribeOnConnect(
+            IObservable<ISocketEvent> wsClient,
+            GdaxAsset[] assets)
         {
             return wsClient
                 .Where(x => x is SocketConnected)
                 .SelectMany(async s =>
                 {
-                    var products = await new GdaxClient().GetProducts();
-                    var assets = products.Select(x => new GdaxAsset(x.Id));
                     await s.Session.SendAsJson(SimpleSubscribe.CreateLevel2WithHeartbeat(assets));
                     return Unit.Default;
                 });
