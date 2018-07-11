@@ -8,7 +8,6 @@ using System.Reactive.Linq;
 using Lykke.Common.ExchangeAdapter;
 using Lykke.Common.ExchangeAdapter.Contracts;
 using Lykke.Service.GdaxAdapter.Services.WebSocketClient;
-using ObservableExtensions = System.ObservableExtensions;
 
 namespace Lykke.Service.GdaxAdapter.Services
 {
@@ -65,7 +64,7 @@ namespace Lykke.Service.GdaxAdapter.Services
         public IObservable<OrderBook> GetOrderBook(string asset)
         {
             if (_byAsset.TryGetValue(asset, out var orderBooks)) return orderBooks;
-            return null;
+            return Observable.Empty<OrderBook>();
         }
 
         public void Dispose()

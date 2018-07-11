@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Lykke.Service.GdaxAdapter.Services.Rest;
-using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace Lykke.Service.GdaxAdapter.Tests

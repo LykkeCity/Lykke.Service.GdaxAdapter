@@ -1,8 +1,4 @@
 using System;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Threading.Tasks;
-using Lykke.Common.ExchangeAdapter;
 using Lykke.Service.GdaxAdapter.Services;
 using Lykke.Service.GdaxAdapter.Services.WebSocketClient;
 using Newtonsoft.Json;

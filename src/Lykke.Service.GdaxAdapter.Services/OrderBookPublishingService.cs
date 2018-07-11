@@ -13,7 +13,6 @@ using Lykke.Service.GdaxAdapter.Services.Rest;
 using Lykke.Service.GdaxAdapter.Services.Settings;
 using Lykke.Service.GdaxAdapter.Services.WebSocketClient;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
 
 namespace Lykke.Service.GdaxAdapter.Services
 {
