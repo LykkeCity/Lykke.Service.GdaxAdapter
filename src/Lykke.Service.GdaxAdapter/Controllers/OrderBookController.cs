@@ -1,44 +1,19 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using Lykke.Common.ExchangeAdapter.Contracts;
+using Lykke.Common.ExchangeAdapter.Server;
 using Lykke.Service.GdaxAdapter.Services;
-using Microsoft.AspNetCore.Mvc;
-using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Lykke.Service.GdaxAdapter.Controllers
 {
-    [Route("api/[controller]")]
-    public sealed class OrderBookController : Controller, IOrderBookApi
+    public sealed class OrderBookController : OrderBookControllerBase
     {
-        private readonly OrderBooksSession _session;
-
         public OrderBookController(OrderBookPublishingService orderBooks)
         {
-            _session = orderBooks.OrderBooksSession;
+            Session = orderBooks.OrderBooksSession;
         }
 
-        [SwaggerOperation("GetAllInstruments")]
-        [HttpGet("GetAllInstruments")]
-        public IReadOnlyCollection<string> GetAllInstruments()
-        {
-            return _session.Instruments.Select(x => x.ToLykkeAsset()).ToArray();
-        }
-
-        [SwaggerOperation("GetAllTickPrices")]
-        [HttpGet("GetAllTickPrices")]
-        public async Task<IReadOnlyCollection<TickPrice>> GetAllTickPrices()
-        {
-            return await _session.TickPrices.FirstOrDefaultAsync();
-        }
-
-        [SwaggerOperation("GetOrderBook")]
-        [HttpGet("GetOrderBook")]
-        public async Task<OrderBook> GetOrderBook(string assetPair)
-        {
-            return await _session.GetOrderBook(assetPair).FirstOrDefaultAsync();
-        }
+        protected override Common.ExchangeAdapter.Server.OrderBooksSession Session { get; }
     }
 
     public interface IOrderBookApi

@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Common.Log;
 using Lykke.Common.ExchangeAdapter;
 using Lykke.Common.ExchangeAdapter.Contracts;
+using Lykke.Common.ExchangeAdapter.Server;
 using Lykke.Common.ExchangeAdapter.Tools.ObservableWebSocket;
 using Lykke.Common.Log;
 using Lykke.Service.GdaxAdapter.Services.Rest;
@@ -32,8 +33,8 @@ namespace Lykke.Service.GdaxAdapter.Services
             _log.Info("Started");
         }
 
-        public OrderBooksSession OrderBooksSession { get; private set; }
         private IDisposable _worker;
+        public OrderBooksSession OrderBooksSession { get; private set; }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
@@ -122,8 +123,10 @@ namespace Lykke.Service.GdaxAdapter.Services
             );
 
             return new OrderBooksSession(
-                assets,
-                tickPrices, orderBooks, publisher);
+                assets.Select(x => x.ToLykkeAsset()).ToArray(),
+                tickPrices,
+                orderBooks,
+                publisher);
         }
 
         private static IObservable<Unit> SubscribeOnConnect(
