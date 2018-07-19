@@ -59,7 +59,7 @@ namespace Lykke.Service.GdaxAdapter.Services.Rest
     {
         static GdaxClient()
         {
-            Client = new HttpClient()
+            Client = new HttpClient
             {
                 BaseAddress = new Uri("https://api.pro.coinbase.com"),
                 DefaultRequestHeaders =
