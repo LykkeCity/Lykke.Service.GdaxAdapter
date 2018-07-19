@@ -17,5 +17,15 @@
                 "ConnectionString": "${GeneralRabbitMqConnectionString}:[RabbitMq]"
             }
         }
+    },
+    "SlackNotifications": {
+        "AzureQueue": {
+            "ConnectionString": "${SlackNotificationsConnString}:[AzureTableStorage]",
+            "QueueName": "slack-notifications"
+        },
+        "ThrottlingLimitSeconds": ${SlackNotificationsThrottlingLimit}
+    },
+    "MonitoringServiceClient": {
+        "MonitoringServiceUrl": "${MonitoringServiceUrl}"
     }
 }
