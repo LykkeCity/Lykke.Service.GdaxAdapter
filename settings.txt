@@ -1,0 +1,21 @@
+{
+    "GdaxAdapterService": {
+        "Db": {
+            "LogsConnString": "${LogsConnString}:[AzureTableStorage]"
+        },
+        "Feeds": {
+            "MaxEventPerSecondByInstrument": ${GdaxAdapterService-Feeds-MaxEventPerSecondByInstrument},
+            "OrderBookDepth": "${GdaxAdapterService-Feeds-OrderBookDepth}",
+            "TickPrices": {
+                "Enabled": ${GdaxAdapterService-Feeds-TickPrices-Enabled},
+                "Exchanger": "lykke.exchangeconnector.tickPrices.gdax",
+                "ConnectionString": "${GeneralRabbitMqConnectionString}:[RabbitMq]"
+            },
+            "OrderBooks": {
+                "Enabled": ${GdaxAdapterService-Feeds-OrderBooks-Enabled},
+                "Exchanger": "lykke.exchangeconnector.orderBooks.gdax",
+                "ConnectionString": "${GeneralRabbitMqConnectionString}:[RabbitMq]"
+            }
+        }
+    }
+}
