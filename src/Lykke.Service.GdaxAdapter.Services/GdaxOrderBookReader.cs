@@ -57,7 +57,7 @@ namespace Lykke.Service.GdaxAdapter.Services
                     {
                         try
                         {
-                            ob.UpdateBid(ch[1].Value<decimal>(), ch[2].Value<decimal>());
+                            ob.UpdateBid(ParseDecimal(ch[1].Value<string>()), ParseDecimal(ch[2].Value<string>()));
                         }
                         catch (Exception ex)
                         {
