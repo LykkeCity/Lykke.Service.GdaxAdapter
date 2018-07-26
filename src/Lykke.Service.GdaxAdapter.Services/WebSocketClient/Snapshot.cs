@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace Lykke.Service.GdaxAdapter.Services
+namespace Lykke.Service.GdaxAdapter.Services.WebSocketClient
 {
     public sealed class Snapshot
     {

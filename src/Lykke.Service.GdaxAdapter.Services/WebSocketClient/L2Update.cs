@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Lykke.Service.GdaxAdapter.Services
+namespace Lykke.Service.GdaxAdapter.Services.WebSocketClient
 {
     public sealed class L2Update
     {

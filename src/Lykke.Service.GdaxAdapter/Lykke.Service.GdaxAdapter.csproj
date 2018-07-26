@@ -22,7 +22,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Lykke.Common.ExchangeAdapter.Server" Version="3.2.3" />
+    <PackageReference Include="Lykke.Common.ExchangeAdapter.Server" Version="4.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Lykke.Service.GdaxAdapter.AzureRepositories\Lykke.Service.GdaxAdapter.AzureRepositories.csproj" />

@@ -19,7 +19,7 @@ namespace Lykke.Service.GdaxAdapter.Services
         }
 
         public static IObservable<ISocketEvent> ApplyBytesReader<T>(
-            this ObservableWebSocket source,
+            this IObservable<ISocketEvent> source,
             Func<byte[], T> reader)
         {
             return source
