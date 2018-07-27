@@ -71,7 +71,7 @@ namespace Lykke.Service.GdaxAdapter.Services
                     {
                         try
                         {
-                            ob.UpdateAsk(ch[1].Value<decimal>(), ch[2].Value<decimal>());
+                            ob.UpdateAsk(ParseDecimal(ch[1].Value<string>()), ParseDecimal(ch[2].Value<string>()));
                         }
                         catch (Exception ex)
                         {
